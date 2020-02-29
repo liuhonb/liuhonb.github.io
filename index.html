@@ -19,6 +19,8 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://yoursite.com/images/og_image.png">
 <meta property="article:author" content="Liuhongbo">
+<meta property="article:tag" content="oracle">
+<meta property="article:tag" content="timesten">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://yoursite.com/images/og_image.png">
 
@@ -135,13 +137,13 @@
         
         <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
             <div class="level-left">
-                <time class="level-item has-text-grey" datetime="2020-02-28T12:09:38.420Z">2020-02-28</time>
+                <time class="level-item has-text-grey" datetime="2020-02-29T06:04:47.256Z">2020-02-29</time>
                 
                 
                 <span class="level-item has-text-grey">
                     
                     
-                    1 分钟 读完 (大约 123 个字)
+                    7 分钟 读完 (大约 1015 个字)
                 </span>
                 
                 
@@ -150,23 +152,117 @@
         
         <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
             
-                <a class="has-link-black-ter" href="/2020/02/28/hello-world/">Hello World</a>
+                <a class="has-link-black-ter" href="/2020/02/29/ORACLE%2011G%20RAC%E5%BA%93%20ADG%20RESTORE%E6%97%A0%E6%B3%95%E6%AD%A3%E5%B8%B8%E5%90%AF%E5%8A%A8RECOVER/">ORACLE 11G RAC库 ADG RESTORE无法正常启动RECOVER</a>
             
         </h1>
         <div class="content">
-            <p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+            <hr>
+<p><strong>先看看我们搞得些什么事情：</strong></p>
+<p>1、从原生产RAC环境tar db软件，并ftp到新环境</p>
+<p>2、新环境解包，并调整环境变量。</p>
+<p>3、relink all 数据库软件</p>
+<p>4、关闭rac</p>
+<pre><code>make -f ins_rdbms.mk rac_off
 
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+make -f ins_rdbms.mk ioracle</code></pre><p>5、调整新环境数据库参数，启动到nomount</p>
+<p>6、rman backup/restore db，脚本ftp 归档日志，非常happy</p>
+<p>7、recover db</p>
+<p><strong>在recover操作时，alter日志发生如下错误：</strong></p>
+<pre><code>ALTER DATABASE RECOVER  database using backup  controlfile  
 
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+Media Recovery Start
 
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+ started logmerger process
 
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+Thu Nov 19 12:32:40 2015
+
+Exception [type: SIGSEGV, Address not mapped to object] [ADDR:0x6FF011534F9DC1D] [PC:0x1036D0F20, kcfbid()+1728] [flags: 0x0, count: 1]
+
+Errors in file /oracle/diag/rdbms/bosscdg/bosscdg/trace/bosscdg_dbw0_25297810.trc  (incident=2880082):
+
+ORA-07445: exception encountered: core dump [kcfbid()+1728] [SIGSEGV] [ADDR:0x6FF011534F9DC1D] [PC:0x1036D0F20] [Address not mapped to object] []
+
+Incident details in: /oracle/diag/rdbms/bosscdg/bosscdg/incident/incdir_2880082/bosscdg_dbw0_25297810_i2880082.trc
+
+Use ADRCI or Support Workbench to package the incident.
+
+See Note 411.1 at My Oracle Support for error and packaging details.
+
+Thu Nov 19 12:32:41 2015
+
+Signalling error 1152 for datafile 5!
+
+Signalling error 1152 for datafile 25!
+
+Signalling error 1152 for datafile 31!</code></pre><p>   bosscdg_dbw0_25297810.trc trc文件如下：</p>
+<pre><code>  Executing SYNC actions
+
+----- START DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (Async) -----
+
+Successfully dispatched
+
+----- END DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (SUCCESS, 0 csec) -----
+
+Executing ASYNC actions
+
+----- END DDE Actions Dump (total 0 csec) -----
+
+DDE rules only execution for: ORA 1110
+
+----- START Event Driven Actions Dump ----
+
+---- END Event Driven Actions Dump ----
+
+----- START DDE Actions Dump -----
+
+Executing SYNC actions
+
+----- START DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (Async) -----
+
+DDE Action &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; was flood controlled
+
+----- END DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (FLOOD CONTROLLED, 1 csec) -----</code></pre><p>这个trc也指出了ora-1110错误，但其可读性较差，只有转交mos了，mos开始怀疑软件bug，oralce依赖包等，来回4、5天，交流无数次，没有半点进展。</p>
+<p>后来与用户管理人员沟通认为可能问题在存储上，故用户提出可能是vg未进行export/import，可能对oracle读取数据文件有一定影响。且该操作相对安全，故在用户安排下，主机厂商进行的export/import操作。</p>
+<p>VG export/import完成后，数据库进行了简单的故障操作模拟，发现alter日志还是抱相同的错误，故未再次进行trc分析。</p>
+<p>与原厂沟通，建议在在新环境补打P17970036 补丁，经补丁升级后，再次进行故障操作，报错照旧。</p>
+<p>自此工作完全无法进行下去，mos 2天都没有回复了，原厂不在现场，抓狂啊。百无聊赖，翻看ora-07445的日志，居然发现trc文件与之前有了很大不同，如下：</p>
+<p>   DDE rules only execution for: ORA 1110</p>
+<pre><code>----- START Event Driven Actions Dump ----
+
+---- END Event Driven Actions Dump ----
+
+----- START DDE Actions Dump -----
+
+Executing SYNC actions
+
+----- START DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (Async) -----
+
+Successfully dispatched
+
+----- END DDE Action: &apos;DB_STRUCTURE_INTEGRITY_CHECK&apos; (SUCCESS, 0 csec) -----
+
+Executing ASYNC actions
+
+----- END DDE Actions Dump (total 0 csec) -----
+
+DDE: Problem Key &apos;ORA 1110&apos; was flood controlled (0x1) (no incident)
+
+ORA-01110: data file 3002: &apos;/dev/rbossc_temp02&apos;
+
+ORA-27048: skgfifi: file header information is invalid
+
+Additional information: 1083
+
+DDE: Problem Key &apos;ORA 1110&apos; was flood controlled (0x1) (no incident)
+
+ORA-01110: data file 3003: &apos;/dev/rbossc_temp03&apos;
+
+ORA-27048: skgfifi: file header information is invalid
+
+Additional information: 1083</code></pre><p>此时也还在抱ora-1110错误，但其指出temp文件的头信息不对，柳暗花明啊.绝对曙光。temp是数据库的临时文件，并不参与backup/restore，在11g使用raw设备时有无法认识头文件的情况发生，立马dd这些报错文件，再进行之前的故障操作，故障消失，数据库开始正常recover。</p>
+<p>最后在进行故障回溯时，发现在export/import vg后，数据库trc文件已发生了这个变化。当时过于主观或武断片面的看了alter日志，而未对trc进行分析。这也说明，任何调整，都有可能引起故障发生改变，即便基本表象一直，也可能在内部发生了一些改变。使故障处理向前推进。</p>
+<hr>
+<p><strong>VG 的export/inport ，进行vg利旧，在底层存储层未进行format，而重新创建新建vg时，必须对lv设备头进行dd操作，否则oracle进行数据文件读写必然出错。</strong></p>
 
         </div>
         
@@ -372,16 +468,16 @@
         
         <article class="media">
             
-            <a href="/2020/02/28/hello-world/" class="media-left">
+            <a href="/2020/02/29/ORACLE%2011G%20RAC%E5%BA%93%20ADG%20RESTORE%E6%97%A0%E6%B3%95%E6%AD%A3%E5%B8%B8%E5%90%AF%E5%8A%A8RECOVER/" class="media-left">
                 <p class="image is-64x64">
-                    <img class="thumbnail" src="/images/thumbnail.svg" alt="Hello World">
+                    <img class="thumbnail" src="/images/thumbnail.svg" alt="ORACLE 11G RAC库 ADG RESTORE无法正常启动RECOVER">
                 </p>
             </a>
             
             <div class="media-content">
                 <div class="content">
-                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-02-28T12:09:38.420Z">2020-02-28</time></div>
-                    <a href="/2020/02/28/hello-world/" class="title has-link-black-ter is-size-6 has-text-weight-normal">Hello World</a>
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-02-29T06:04:47.256Z">2020-02-29</time></div>
+                    <a href="/2020/02/29/ORACLE%2011G%20RAC%E5%BA%93%20ADG%20RESTORE%E6%97%A0%E6%B3%95%E6%AD%A3%E5%B8%B8%E5%90%AF%E5%8A%A8RECOVER/" class="title has-link-black-ter is-size-6 has-text-weight-normal">ORACLE 11G RAC库 ADG RESTORE无法正常启动RECOVER</a>
                     <p class="is-size-7 is-uppercase">
                         
                     </p>
@@ -448,16 +544,16 @@
         
         <article class="media">
             
-            <a href="/2020/02/28/hello-world/" class="media-left">
+            <a href="/2020/02/29/ORACLE%2011G%20RAC%E5%BA%93%20ADG%20RESTORE%E6%97%A0%E6%B3%95%E6%AD%A3%E5%B8%B8%E5%90%AF%E5%8A%A8RECOVER/" class="media-left">
                 <p class="image is-64x64">
-                    <img class="thumbnail" src="/images/thumbnail.svg" alt="Hello World">
+                    <img class="thumbnail" src="/images/thumbnail.svg" alt="ORACLE 11G RAC库 ADG RESTORE无法正常启动RECOVER">
                 </p>
             </a>
             
             <div class="media-content">
                 <div class="content">
-                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-02-28T12:09:38.420Z">2020-02-28</time></div>
-                    <a href="/2020/02/28/hello-world/" class="title has-link-black-ter is-size-6 has-text-weight-normal">Hello World</a>
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2020-02-29T06:04:47.256Z">2020-02-29</time></div>
+                    <a href="/2020/02/29/ORACLE%2011G%20RAC%E5%BA%93%20ADG%20RESTORE%E6%97%A0%E6%B3%95%E6%AD%A3%E5%B8%B8%E5%90%AF%E5%8A%A8RECOVER/" class="title has-link-black-ter is-size-6 has-text-weight-normal">ORACLE 11G RAC库 ADG RESTORE无法正常启动RECOVER</a>
                     <p class="is-size-7 is-uppercase">
                         
                     </p>
